@@ -142,7 +142,12 @@ func createDailyReportIssue(ctx context.Context, token, owner, repo, tzName, tit
 	} else if !workday {
 		return "", false, nil // skip on non-workday
 	}
-	y, m, d := now.Date()
+	// Use previous China workday as the report date
+	prevCN, err := getPreviousChinaWorkday(ctx, now.In(cnLoc))
+	if err != nil {
+		return "", false, err
+	}
+	y, m, d := prevCN.Date()
 	dateStr := fmt.Sprintf("【%04d-%02d-%02d】", y, int(m), d)
 	title := fmt.Sprintf("%s %s", dateStr, titlePrefix)
 
@@ -387,4 +392,26 @@ func loadDotEnvFile(path string) {
 			_ = os.Setenv(key, val)
 		}
 	}
+}
+
+// getPreviousChinaWorkday walks backwards from the given China time to find the previous workday
+// according to mainland China calendar (including public holidays and make-up days).
+// Returns a date at 00:00 in Asia/Shanghai.
+func getPreviousChinaWorkday(ctx context.Context, dateCN time.Time) (time.Time, error) {
+	cnLoc, _ := time.LoadLocation("Asia/Shanghai")
+	start := time.Date(dateCN.Year(), dateCN.Month(), dateCN.Day(), 0, 0, 0, 0, cnLoc)
+	for i := 1; i <= 31; i++ {
+		candidate := start.AddDate(0, 0, -i)
+		ok, err := isChinaWorkday(ctx, candidate)
+		if err != nil {
+			if candidate.Weekday() != time.Saturday && candidate.Weekday() != time.Sunday {
+				return candidate, nil
+			}
+			continue
+		}
+		if ok {
+			return candidate, nil
+		}
+	}
+	return start.AddDate(0, 0, -1), nil
 }
