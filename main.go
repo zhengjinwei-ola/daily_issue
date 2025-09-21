@@ -156,8 +156,8 @@ func createDailyReportIssue(ctx context.Context, token, owner, repo, tzName, tit
 
 	body := strings.Join([]string{
 		"请在此填写：",
-		"- 今日进展：",
-		"- 明日计划：",
+		"- 昨日进展：",
+		"- 今日计划：",
 		"- 风险/阻塞：",
 	}, "\n")
 
@@ -266,22 +266,41 @@ func isChinaWorkday(ctx context.Context, dateCN time.Time) (bool, error) {
 	} else {
 		endpoint = strings.ReplaceAll(endpoint, "{date}", dateStr)
 	}
+	fmt.Println("endpoint:", endpoint)
+	client := &http.Client{Timeout: 8 * time.Second}
+	var resp *http.Response
+	var err error
+	for attempt := 0; attempt < 3; attempt++ {
+		req, rerr := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+		if rerr != nil {
+			return false, rerr
+		}
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; DailyIssueBot/1.0; +https://github.com)")
+		req.Header.Set("Referer", "https://timor.tech/")
 
-	client := &http.Client{Timeout: 6 * time.Second}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return false, err
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+		resp, err = client.Do(req)
+		if err != nil {
+			if attempt < 2 {
+				time.Sleep(time.Duration(300*(attempt+1)) * time.Millisecond)
+				continue
+			}
+			return false, err
+		}
+		if resp.StatusCode == http.StatusOK {
+			break
+		}
+		if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusTooManyRequests {
+			resp.Body.Close()
+			if attempt < 2 {
+				time.Sleep(time.Duration(500*(attempt+1)) * time.Millisecond)
+				continue
+			}
+		}
+		defer resp.Body.Close()
 		return false, fmt.Errorf("holiday api status: %s", resp.Status)
 	}
+	defer resp.Body.Close()
 	var out struct {
 		Code int `json:"code"`
 		Type *struct {
