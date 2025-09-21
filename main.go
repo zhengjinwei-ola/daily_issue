@@ -161,8 +161,8 @@ func createDailyReportIssue(ctx context.Context, token, owner, repo, tzName, tit
 
 	body := strings.Join([]string{
 		"请在此填写：",
-		"- 昨日进展：",
-		"- 今日计划：",
+		"- 今日进展：",
+		"- 明日计划：",
 		"- 风险/阻塞：",
 	}, "\n")
 
