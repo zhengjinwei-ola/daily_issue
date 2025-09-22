@@ -151,13 +151,13 @@ func createDailyReportIssue(ctx context.Context, token, owner, repo, tzName, tit
 	dateStr := fmt.Sprintf("【%04d-%02d-%02d】", y, int(m), d)
 	title := fmt.Sprintf("%s %s", dateStr, titlePrefix)
 
-	issueURL, exists, err := findExistingIssue(ctx, token, owner, repo, title)
-	if err != nil {
-		return "", false, err
-	}
-	if exists {
-		return issueURL, false, nil
-	}
+	// issueURL, exists, err := findExistingIssue(ctx, token, owner, repo, title)
+	// if err != nil {
+	// 	return "", false, err
+	// }
+	// if exists {
+	// 	return issueURL, false, nil
+	// }
 
 	body := strings.Join([]string{
 		"请在此填写：",
@@ -173,6 +173,7 @@ func createDailyReportIssue(ctx context.Context, token, owner, repo, tzName, tit
 	return url, true, nil
 }
 
+// 暂时先不用判断 issue 是否存在
 func findExistingIssue(ctx context.Context, token, owner, repo, title string) (string, bool, error) {
 	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues?state=open&per_page=100", owner, repo)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
