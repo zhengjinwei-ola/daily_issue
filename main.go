@@ -326,7 +326,8 @@ func isChinaWorkday(ctx context.Context, dateCN time.Time) (bool, error) {
 	if out.Code != 0 || out.Type == nil {
 		return false, errors.New("holiday api returned unknown")
 	}
-	return out.Type.Type == 0, nil
+	// 工作日或者补班日 需要发日报
+	return out.Type.Type == 0 || out.Type.Type == 3, nil
 }
 
 // getRunLogPath returns the run log path from env RUN_LOG_FILE or defaults to ./logs/daily_run.log
