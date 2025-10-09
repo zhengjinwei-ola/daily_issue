@@ -293,6 +293,7 @@ func isChinaWorkday(ctx context.Context, dateCN time.Time) (bool, error) {
 			}
 			return false, err
 		}
+		fmt.Println("resp:", resp)
 		if resp.StatusCode == http.StatusOK {
 			break
 		}
